@@ -1,0 +1,128 @@
+============================================================
+CHIEF — LIVE iRacing COACHING TEST CHECKLIST
+============================================================
+
+Goal: prove the full chain works end-to-end TONIGHT before driving.
+
+LOCATION OF THESE FILES
+-----------------------
+Logger folder:   C:\chief-iracing-logger  (or wherever you copied it)
+Logger run cmd:  double-click run.bat   (or: python chief.py)
+Web app page:    https://chiefracing.com/dashboard/sim-racing/live-status
+                 (or http://localhost:3000/dashboard/sim-racing/live-status if running locally)
+Logger HTTP URL: http://localhost:5188
+
+============================================================
+PRE-FLIGHT (do before iRacing)
+============================================================
+
+[ ] 1. Logger is on home PC (in C:\chief-iracing-logger)
+[ ] 2. Python 3.10+ installed (https://python.org, "Add to PATH" checked)
+[ ] 3. .env file exists (copied from .env.example, ANTHROPIC_API_KEY pasted)
+[ ] 4. Speakers/headset working
+
+============================================================
+PHASE 1 — LOGGER ALONE (no iRacing yet)
+============================================================
+
+[ ] 5. Double-click run.bat
+[ ] 6. Console shows:
+        "Logger started"  /  "HTTP server listening on http://127.0.0.1:5188"
+        "Web app endpoint: http://localhost:5188/"
+[ ] 7. Open http://localhost:5188/ in a browser → see "Chief Logger Online" page
+
+============================================================
+PHASE 2 — WEB APP CONNECTION
+============================================================
+
+[ ] 8. Open Chief web app, sign in
+[ ] 9. Navigate to:  /dashboard/sim-racing/live-status
+[ ] 10. Pill at top of page shows:
+         "iRacing Connected"   (if iRacing running)
+         "Waiting for iRacing"  (if logger up but iRacing not running)
+         "Logger Offline"       (if logger not running — fix run.bat)
+
+============================================================
+PHASE 3 — VOICE + CLAUDE TEST (no iRacing needed)
+============================================================
+
+[ ] 11. On the live-status page, click "Test Live Coach (Fast)"
+[ ] 12. Result line shows ✓ Spoken: "Chief live coach test..."
+[ ] 13. You HEAR Chief speak through your speakers
+[ ] 14. Coaching feed shows the test event with severity "INFO" and "TEST" tag
+[ ] 15. Voice section shows "Last queued" and "Last spoken" with the phrase
+
+[ ] 16. Click "Test via Claude"
+[ ] 17. Result line shows ✓ Spoken: "(some coach-style phrase)" (Claude rewrote it)
+[ ] 18. You hear it spoken
+        → If this works, voice + Claude path is 100% live.
+
+============================================================
+PHASE 4 — iRacing LIVE TELEMETRY
+============================================================
+
+[ ] 19. Launch iRacing
+[ ] 20. Enter Test Drive (any car/track)
+[ ] 21. On live-status page, pill changes to "Live Telemetry Active" (lime green)
+[ ] 22. Session info card shows your CAR and TRACK names
+[ ] 23. While sitting in the car:
+         - Press THROTTLE → Throttle bar fills green
+         - Press BRAKE    → Brake bar fills red
+         - Turn WHEEL     → Steering bar moves (degrees update)
+         - Shift GEAR     → Gear stat changes (R / N / 1 / 2 / 3...)
+         - Watch RPM      → RPM ticks up with engine
+         - Drive forward  → Speed mph updates
+
+[ ] 24. Drive a lap. Lap counter increments.
+[ ] 25. After lap 1, Chief should make a "first_lap" radio call
+        (you'll hear it AND it appears in coaching feed)
+
+============================================================
+PHASE 5 — END-OF-SESSION
+============================================================
+
+[ ] 26. Exit iRacing (or press Ctrl+C in logger window)
+[ ] 27. Console shows "Session over. Logging your laps."
+[ ] 28. If CHIEF_SYNC_URL is set in .env: console shows "Sync → 200" (or similar)
+
+============================================================
+WHAT SUCCESS LOOKS LIKE
+============================================================
+✓ http://localhost:5188/  loads
+✓ live-status page shows "Live Telemetry Active"
+✓ Pressing pedals/wheel/gear in iRacing → bars and numbers update on web page
+✓ Test Live Coach button → voice plays + appears in feed
+✓ Real lap completion → automatic coaching call
+
+============================================================
+TROUBLESHOOTING
+============================================================
+"Logger Offline" on web page
+  → run.bat not running, OR another app on port 5188.
+    Check console for "HTTP server listening" line.
+
+"Waiting for iRacing" forever
+  → iRacing not started OR not in a session yet.
+    Try Test Drive (Practice → any car/track → Drive).
+
+Throttle/brake/etc not moving in web app despite being in car
+  → You may be in spectate. Make sure you're driving (in the car).
+  → Try restarting iRacing as Administrator first time.
+
+No voice plays during Test Live Coach
+  → Check Windows audio output device. Check the run.bat console
+    for "VOICE QUEUED" / "VOICE SPEAK" lines. If queued but not spoken,
+    pyttsx3 init failed — see "last_error" in /health response.
+
+Test via Claude returns the same phrase as fast test
+  → ANTHROPIC_API_KEY missing/wrong in .env. Check console for
+    "ANTHROPIC_API_KEY missing" warning.
+
+============================================================
+URLS QUICK REFERENCE
+============================================================
+Logger landing:  http://localhost:5188/
+Logger health:   http://localhost:5188/health
+Live telemetry:  http://localhost:5188/telemetry/latest
+Coaching feed:   http://localhost:5188/coaching/latest
+Web dashboard:   /dashboard/sim-racing/live-status

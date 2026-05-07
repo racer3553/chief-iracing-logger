@@ -1,0 +1,22 @@
+.env
+.env.local
+.env.*.local
+venv/
+__pycache__/
+*.pyc
+*.log
+sessions/
+
+# Secrets — NEVER COMMIT
+*key*.txt
+*KEY*.txt
+*secret*.txt
+*SECRET*.txt
+*token*.txt
+*TOKEN*.txt
+sk-ant-*
+sk-*.txt
+new_key.txt
+*.pem
+*.p12
+*.pfx

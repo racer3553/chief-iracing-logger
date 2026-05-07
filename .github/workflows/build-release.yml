@@ -1,0 +1,56 @@
+name: Build and Release Chief Logger
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build ChiefLogger
+        run: |
+          cd ChiefLogger
+          dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ../publish
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/ChiefLogger.exe
+          name: "Chief Logger ${{ github.ref_name }}"
+          body: |
+            ## Chief Logger ${{ github.ref_name }}
+
+            AI Crew Chief for iRacing — per-corner coaching, live telemetry, voice callouts.
+
+            ### Install
+            1. Download ChiefLogger.exe below
+            2. Run it (click "Run Anyway" if Windows warns you)
+            3. Login with your Chief Racing account
+            4. Open iRacing — Chief auto-connects
+
+            ### What's New
+            - Per-corner coaching with specific brake/throttle/setup recommendations
+            - Auto-sync sessions to chiefracing.com
+            - Voice coaching mode
+            - Hardware-aware tips (Simucube, Simagic, Fanatec)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact (for non-tag builds)
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChiefLogger
+          path: publish/ChiefLogger.exe

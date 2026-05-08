@@ -376,7 +376,7 @@ def main():
         api.stop(); voice.stop(); sys.exit(0)
     # Signal handlers can only be registered from the main thread.  When chief
     # runs inside the Companion (.exe), main() is called from a worker thread,
-    # so just skip them — the tray Quit handler covers shutdown there.
+    # so just skip them â€” the tray Quit handler covers shutdown there.
     try:
         signal.signal(signal.SIGINT, shutdown)
         signal.signal(signal.SIGTERM, shutdown)
@@ -386,19 +386,6 @@ def main():
     try:
         if args.simulate:
             run_simulate(voice, use_claude, log, sector_tracker, setup_archive)
-        else:
-            run_live(voice, use_claude, log, sector_tracker, setup_archive)
-    except KeyboardInterrupt: pass
-    finally:
-        if hardware_watcher: hardware_watcher.stop()
-        if setup_watcher: setup_watcher.stop()
-        if ptt: ptt.stop()
-        api.stop(); voice.stop()
-
-
-if __name__ == "__main__":
-    main()
-g, sector_tracker, setup_archive)
         else:
             run_live(voice, use_claude, log, sector_tracker, setup_archive)
     except KeyboardInterrupt: pass

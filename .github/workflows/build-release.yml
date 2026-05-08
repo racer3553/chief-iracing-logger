@@ -29,26 +29,50 @@ jobs:
           pip install pyinstaller==6.10.0
 
       - name: Build ChiefLogger.exe
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           pyinstaller --onefile --name ChiefLogger --noconfirm `
             --paths . `
+            --paths "${{ github.workspace }}" `
+            --add-data "core;core" `
+            --add-data "companion;companion" `
             --collect-all core `
             --collect-all companion `
+            --collect-submodules core `
+            --collect-submodules companion `
             --collect-all faster_whisper `
             --collect-submodules sounddevice `
+            --hidden-import core `
+            --hidden-import core.coach `
+            --hidden-import core.events `
+            --hidden-import core.voice `
+            --hidden-import core.session `
+            --hidden-import core.telemetry `
+            --hidden-import core.ptt `
+            --hidden-import core.health `
+            --hidden-import core.api_server `
+            --hidden-import core.cloud_coach `
+            --hidden-import core.hardware_archive `
+            --hidden-import core.hardware_watcher `
+            --hidden-import core.offline_buffer `
+            --hidden-import core.sectors `
+            --hidden-import core.setup_archive `
+            --hidden-import core.setup_watcher `
+            --hidden-import core.state `
+            --hidden-import core.trace_analyzer `
+            --hidden-import companion `
             --hidden-import pyirsdk `
             --hidden-import pyttsx3.drivers `
             --hidden-import pyttsx3.drivers.sapi5 `
             --hidden-import comtypes `
             chief.py
 
-      - name: Sanity check binary
+      - name: Sanity check
         shell: pwsh
         run: |
-          if (-not (Test-Path dist/ChiefLogger.exe)) {
-            Write-Error "ChiefLogger.exe was not produced"
-            exit 1
-          }
+          if (-not (Test-Path dist/ChiefLogger.exe)) { Write-Error "exe missing"; exit 1 }
           $sizeMB = [math]::Round((Get-Item dist/ChiefLogger.exe).Length / 1MB, 1)
           Write-Host "Built ChiefLogger.exe ($sizeMB MB)"
 
@@ -60,10 +84,7 @@ jobs:
           name: "Chief Logger ${{ github.ref_name }}"
           body: |
             ## Chief Logger ${{ github.ref_name }}
-
             Live AI Crew Chief for iRacing.
-
-            Download **ChiefLogger.exe** below, double-click, sign in, launch iRacing.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

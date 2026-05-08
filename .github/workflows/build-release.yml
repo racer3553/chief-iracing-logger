@@ -1,4 +1,4 @@
-name: Build and Release Chief Logger
+﻿name: Build and Release Chief Logger
 
 on:
   push:
@@ -16,45 +16,66 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
-          dotnet-version: '8.0.x'
+          python-version: '3.11'
+          cache: 'pip'
 
-      - name: Restore
-        run: dotnet restore ChiefLogger.csproj
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller==6.10.0
 
-      - name: Build ChiefLogger
-        run: dotnet publish ChiefLogger.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -o publish
+      - name: Build ChiefLogger.exe
+        run: |
+          pyinstaller --onefile --name ChiefLogger --noconfirm `
+            --hidden-import pyirsdk `
+            --hidden-import pyttsx3.drivers `
+            --hidden-import pyttsx3.drivers.sapi5 `
+            --hidden-import comtypes `
+            --collect-all faster_whisper `
+            --collect-submodules sounddevice `
+            chief.py
 
-      - name: Create Release
+      - name: Sanity check binary
+        shell: pwsh
+        run: |
+          if (-not (Test-Path dist/ChiefLogger.exe)) {
+            Write-Error "ChiefLogger.exe was not produced"
+            exit 1
+          }
+          $sizeMB = [math]::Round((Get-Item dist/ChiefLogger.exe).Length / 1MB, 1)
+          Write-Host "Built ChiefLogger.exe ($sizeMB MB)"
+
+      - name: Upload to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: publish/ChiefLogger.exe
+          files: dist/ChiefLogger.exe
           name: "Chief Logger ${{ github.ref_name }}"
           body: |
             ## Chief Logger ${{ github.ref_name }}
 
-            AI Crew Chief for iRacing — per-corner coaching, live telemetry, voice callouts.
+            Live AI Crew Chief for iRacing â€” real-time per-corner coaching, live telemetry, voice callouts, lap-by-lap analysis.
 
             ### Install
-            1. Download ChiefLogger.exe below
-            2. Run it (click "Run Anyway" if Windows warns you)
-            3. Login with your Chief Racing account
-            4. Open iRacing — Chief auto-connects
+            1. Download **ChiefLogger.exe** below
+            2. Double-click to run (Windows may show SmartScreen â€” click "More info" â†’ "Run anyway")
+            3. Sign in with your Chief Racing account
+            4. Launch iRacing â€” Chief auto-connects at session start
 
-            ### What's New
-            - Per-corner coaching with specific brake/throttle/setup recommendations
-            - Auto-sync sessions to chiefracing.com
-            - Voice coaching mode
-            - Hardware-aware tips (Simucube, Simagic, Fanatec)
+            ### Requirements
+            - Windows 10/11
+            - iRacing installed
+            - Internet connection (Claude AI calls)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload artifact (for non-tag builds)
+      - name: Upload artifact (non-tag builds)
         if: "!startsWith(github.ref, 'refs/tags/')"
         uses: actions/upload-artifact@v4
         with:
           name: ChiefLogger
-          path: publish/ChiefLogger.exe
+          path: dist/ChiefLogger.exe

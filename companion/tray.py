@@ -68,9 +68,3 @@ def run_tray(
         return
 
     paused = {"v": False}
-    cached_state = {
-        "iracing": False,
-        "telemetry": False,
-        "cloud": False,
-        "label": "Idle",
-    

@@ -181,25 +181,3 @@ def _race_state_lines(ctx):
         n = ctx["saved_setups_for_combo"]
         lines.append(f"- Saved setups for this car/track: {n}")
     return lines
-']:+.3f}s")
-    if ctx.get("theoretical_best"):
-        lines.append(f"- Theoretical best (sum of best sectors): {ctx['theoretical_best']:.3f}s")
-    if ctx.get("biggest_loss_sector"):
-        bls = ctx["biggest_loss_sector"]
-        lines.append(f"- Biggest sector loss: sector {bls['sector']+1}, {bls['delta']:+.3f}s")
-    if ctx.get("recent_sector"):
-        rs = ctx["recent_sector"]
-        lines.append(f"- Just completed sector {rs['sector']+1}: {rs['time']:.3f}s ({rs['delta']:+.3f}s vs best)")
-    if ctx.get("fuel_pct") is not None:
-        lines.append(f"- Fuel: {ctx['fuel_pct']*100:.0f}%")
-    if ctx.get("fuel_per_lap"):
-        lines.append(f"- Fuel per lap: {ctx['fuel_per_lap']:.3f}")
-    if ctx.get("incidents") is not None:
-        lines.append(f"- Incidents: {ctx['incidents']}x")
-    if ctx.get("tire_temps"):
-        t = ctx["tire_temps"]
-        lines.append(f"- Tires (°C): LF {t.get('LF',0):.0f}, RF {t.get('RF',0):.0f}, LR {t.get('LR',0):.0f}, RR {t.get('RR',0):.0f}")
-    if ctx.get("saved_setups_for_combo"):
-        n = ctx["saved_setups_for_combo"]
-        lines.append(f"- Saved setups for this car/track: {n}")
-    return lines

@@ -31,12 +31,15 @@ jobs:
       - name: Build ChiefLogger.exe
         run: |
           pyinstaller --onefile --name ChiefLogger --noconfirm `
+            --paths . `
+            --collect-all core `
+            --collect-all companion `
+            --collect-all faster_whisper `
+            --collect-submodules sounddevice `
             --hidden-import pyirsdk `
             --hidden-import pyttsx3.drivers `
             --hidden-import pyttsx3.drivers.sapi5 `
             --hidden-import comtypes `
-            --collect-all faster_whisper `
-            --collect-submodules sounddevice `
             chief.py
 
       - name: Sanity check binary
@@ -58,18 +61,9 @@ jobs:
           body: |
             ## Chief Logger ${{ github.ref_name }}
 
-            Live AI Crew Chief for iRacing â€” real-time per-corner coaching, live telemetry, voice callouts, lap-by-lap analysis.
+            Live AI Crew Chief for iRacing.
 
-            ### Install
-            1. Download **ChiefLogger.exe** below
-            2. Double-click to run (Windows may show SmartScreen â€” click "More info" â†’ "Run anyway")
-            3. Sign in with your Chief Racing account
-            4. Launch iRacing â€” Chief auto-connects at session start
-
-            ### Requirements
-            - Windows 10/11
-            - iRacing installed
-            - Internet connection (Claude AI calls)
+            Download **ChiefLogger.exe** below, double-click, sign in, launch iRacing.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

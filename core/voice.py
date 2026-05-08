@@ -1,95 +1,80 @@
-"""Voice/TTS layer -- async queue so coach calls never block the telemetry loop.
-
-Uses Windows SAPI via pyttsx3 (free, offline, instant). Swap to ElevenLabs later.
-Also pushes voice activity into shared STATE so the web app can see it.
-"""
-import threading
-import queue
-import logging
-
-import pyttsx3
-
-import config
-from core.state import STATE
+"""Resilient TTS - fresh pyttsx3 engine per call, hard timeout, fail-soft."""
+import logging, os, threading
 
 log = logging.getLogger("chief.voice")
+_fail = 0
+_off = False
+_lock = threading.Lock()
+_idx = int(os.getenv("VOICE_INDEX", "0"))
+_rate = int(os.getenv("VOICE_RATE", "175"))
+_vol = float(os.getenv("VOICE_VOLUME", "1.0"))
+_max_fail = int(os.getenv("VOICE_MAX_FAILURES", "5"))
+_timeout = float(os.getenv("VOICE_TIMEOUT_SEC", "12"))
 
 
-class Voice:
-    def __init__(self):
-        self._q = queue.Queue()
-        self._thread = threading.Thread(target=self._run, daemon=True, name="ChiefVoice")
-        self._engine = None
-        self._started = False
-        self._enabled = True
-
-    def start(self):
-        if self._started:
-            return
-        self._started = True
-        self._thread.start()
-        log.info("Voice engine started.")
-
-    def disable(self):
-        """Used in --no-voice mode. Logs/state still updated; no audio played."""
-        self._enabled = False
-
-    def _init_engine(self):
-        eng = pyttsx3.init()
-        eng.setProperty("rate", config.VOICE_RATE)
-        eng.setProperty("volume", config.VOICE_VOLUME)
-        voices = eng.getProperty("voices")
-        if voices and 0 <= config.VOICE_INDEX < len(voices):
-            eng.setProperty("voice", voices[config.VOICE_INDEX].id)
-        return eng
-
-    def _run(self):
-        if not self._enabled:
-            return
-        try:
-            self._engine = self._init_engine()
-        except Exception as e:
-            log.error(f"Voice init failed: {e}")
-            STATE.set_error(f"Voice engine failed to init: {e}")
-            return
-        while True:
-            text = self._q.get()
-            if text is None:
-                break
-            try:
-                while self._q.qsize() > 2:
-                    drained = self._q.get_nowait()
-                    if drained is None:
-                        return
-                    text = drained
-                log.info(f"VOICE SPEAK: {text}")
-                self._engine.say(text)
-                self._engine.runAndWait()
-                STATE.voice_spoken(text)
-            except Exception as e:
-                log.warning(f"TTS speak failed: {e}")
-                STATE.set_error(f"TTS error: {e}")
-
-    def say(self, text):
-        if not text:
-            return
-        log.info(f"VOICE QUEUED: {text}")
-        STATE.voice_queued(text)
-        if self._enabled:
-            self._q.put(text)
-        else:
-            STATE.voice_spoken(text)
-
-    def stop(self):
-        self._q.put(None)
-
-
-def list_voices_console():
-    """Run `python -m core.voice` to see voice indexes installed on this PC."""
+def _do_speak(text):
+    import pyttsx3
     eng = pyttsx3.init()
-    for i, v in enumerate(eng.getProperty("voices")):
-        print(f"[{i}] {v.name}  ({v.id})")
+    try:
+        try:
+            vs = eng.getProperty("voices") or []
+            if vs and 0 <= _idx < len(vs):
+                eng.setProperty("voice", vs[_idx].id)
+        except Exception:
+            pass
+        eng.setProperty("rate", _rate)
+        eng.setProperty("volume", _vol)
+        eng.say(text)
+        eng.runAndWait()
+    finally:
+        try: eng.stop()
+        except Exception: pass
+
+
+def speak(text):
+    global _fail, _off
+    if not text: return True
+    if _off:
+        log.info("(voice off) %s", text)
+        return False
+    with _lock:
+        r = {"ok": False}
+        def go():
+            try:
+                _do_speak(text)
+                r["ok"] = True
+            except Exception as e:
+                log.warning("voice err: %s", e)
+        t = threading.Thread(target=go, daemon=True)
+        t.start()
+        t.join(timeout=_timeout)
+        if t.is_alive():
+            log.warning("voice TIMEOUT after %ss: %s", _timeout, text[:60])
+            _fail += 1
+        elif r["ok"]:
+            _fail = 0
+            return True
+        else:
+            _fail += 1
+        if _fail >= _max_fail:
+            _off = True
+            log.error("VOICE DISABLED after %s failures - text-only mode now", _fail)
+        return False
+
+
+def stop(): pass
+
+
+def list_voices():
+    try:
+        import pyttsx3
+        e = pyttsx3.init()
+        for i, v in enumerate(e.getProperty("voices") or []):
+            print(f"{i}: {v.name} ({v.id})")
+        e.stop()
+    except Exception as e:
+        print(f"err: {e}")
 
 
 if __name__ == "__main__":
-    list_voices_console()
+    list_voices()

@@ -289,6 +289,7 @@ def run_live(voice, use_claude, log, sector_tracker, setup_archive):
 
 
 def main():
+    heartbeat.start()
     p = argparse.ArgumentParser(description="CHIEF v3 -- live AI crew chief for iRacing")
     p.add_argument("--simulate", action="store_true")
     p.add_argument("--no-voice", action="store_true")
@@ -376,7 +377,7 @@ def main():
         api.stop(); voice.stop(); sys.exit(0)
     # Signal handlers can only be registered from the main thread.  When chief
     # runs inside the Companion (.exe), main() is called from a worker thread,
-    # so just skip them â€” the tray Quit handler covers shutdown there.
+    # so just skip them Ã¢â‚¬â€ the tray Quit handler covers shutdown there.
     try:
         signal.signal(signal.SIGINT, shutdown)
         signal.signal(signal.SIGTERM, shutdown)

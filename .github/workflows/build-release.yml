@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -18,10 +21,11 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Restore
+        run: dotnet restore ChiefLogger.csproj
+
       - name: Build ChiefLogger
-        run: |
-          cd ChiefLogger
-          dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ../publish
+        run: dotnet publish ChiefLogger.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -o publish
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
